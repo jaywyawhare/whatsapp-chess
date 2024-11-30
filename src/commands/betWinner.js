@@ -112,7 +112,7 @@ module.exports = {
                             userSummaryMessage += `- You lost the bet on ${userBetOutcome}.\n`;
                         }
 
-                        db.run('UPDATE users SET Elixir = ? WHERE userID = ?', [newElixirAmount, userId], (err) => {
+                        db.run('UPDATE users SET elixir = ? WHERE userID = ?', [newElixirAmount, userId], (err) => {
                             if (err) {
                                 console.error('Error updating user balance:', err.message);
                             }
