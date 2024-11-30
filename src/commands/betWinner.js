@@ -3,8 +3,9 @@ require('dotenv').config();
 
 const db = new sqlite3.Database('./user_data.db');
 const allowedUserId = process.env.ALLOWED_USER_ID;
+const warning = require('./warning');
 
-let activeBets = {}; 
+let activeBets = {};
 let currentBetResult = null;
 let bettingActive = false;
 
@@ -46,7 +47,7 @@ module.exports = {
 
         if (command === 'gamestart') {
             if (senderId !== allowedUserId) {
-                return message.reply("You are not authorized to start the game.");
+                warning.execute(message, []);
             }
 
             if (bettingActive) {
@@ -60,7 +61,7 @@ module.exports = {
 
         if (command.startsWith('gameend ')) {
             if (senderId !== allowedUserId) {
-                return message.reply("You are not authorized to end the game.");
+                warning.execute(message, []);
             }
 
             if (!bettingActive) {
@@ -126,7 +127,7 @@ module.exports = {
             });
 
             bettingActive = false;
-            activeBets = {};
+            activeBets = {}; 
 
             finalMessages.forEach(userMessage => {
                 message.reply(userMessage);
@@ -147,7 +148,7 @@ module.exports = {
             }
 
             if (!betAmount || isNaN(betAmount) || parseInt(betAmount) <= 0) {
-                return message.reply("Please provide a valid bet amount.");
+                return message.reply("Please provide a valid positive bet amount greater than zero.");
             }
 
             const betAmountInt = parseInt(betAmount);
