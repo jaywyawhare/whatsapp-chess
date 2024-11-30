@@ -1,92 +1,70 @@
-import axios from 'axios';
-import fs from 'fs';
-import path from 'path';
-import { fetchData } from '../utils/fetchData';
+const fs = require("fs");
+const path = require("path");
+const axios = require("axios");
+const { MessageMedia } = require("whatsapp-web.js");
 
 const url = process.env.MEME_URL;
 
 module.exports = {
-    name: 'meme',
-    description: 'Send a random meme',
-    async execute(message, args) {
-        const subreddits = [
-            'dankmemes',        
-            'techmemes',        
-            'linuxmemes',       
-            'cricketmemes',     
-            'dankmeme',         
-            'ProgrammerHumor',  
-            'memes',            
-            'me_irl',           
-            'wholesomememes',   
-            'techhumor',        
-        ];
+  name: "meme",
+  description: "Send a random meme",
 
-        const getMeme = async () => {
-            const subreddit = subreddits[Math.floor(Math.random() * subreddits.length)]; // Randomly select a subreddit
-            const apiUrl = `${url}/${subreddit}`;
+  async execute(message, args) {
+    try {
+      const response = await axios.get(url);
+      const meme = response.data;
 
-            try {
-                const data = await fetchData(apiUrl);
+      if (!meme || !meme.url || !meme.title) {
+        throw new Error("Failed to retrieve a valid meme");
+      }
 
-                const post = data && data[0] && data[0].data.children[0].data;
+      const memeUrl = meme.url;
+      const memeTitle = meme.title;
 
-                if (post && !post.nsfw) {
-                    return {
-                        title: post.title,
-                        imageUrl: post.url,
-                    };
-                } else {
-                    return null;
-                }
-            } catch (error) {
-                console.error('Error fetching meme:', error);
-                return null;
-            }
-        };
+      const fileExtension = memeUrl.endsWith(".gif") ? "gif" : "png";
+      const imagePath = path.join(
+        __dirname,
+        "../../assets/images",
+        `meme.${fileExtension}`
+      );
+      const writer = fs.createWriteStream(imagePath);
 
-        let memeData = null;
-        let retries = 5; 
+      const imageResponse = await axios.get(memeUrl, {
+        responseType: "stream",
+      });
+      imageResponse.data.pipe(writer);
 
-        while (retries > 0) {
-            memeData = await getMeme();
+      writer.on("finish", () => {
+        const media =
+          fileExtension === "gif"
+            ? MessageMedia.fromFilePath(imagePath, "image/gif")
+            : MessageMedia.fromFilePath(imagePath, "image/png");
 
-            if (memeData) {
-                break; 
-            }
+        const memeMessage = `${memeTitle}`;
 
-            retries -= 1;
-            console.log(`Retrying... ${retries} attempts left.`);
-        }
+        message.reply(media, null, { caption: memeMessage });
+      });
 
-        if (memeData) {
-            try {
-                const response = await axios({
-                    url: memeData.imageUrl,
-                    responseType: 'stream',
-                });
+      writer.on("error", (err) => {
+        console.error("Error saving the meme image:", err);
+        message.reply(
+          "Sorry, I couldn't fetch a meme right now. Please try again later."
+        );
+      });
 
-                const filePath = path.join(__dirname, 'meme.jpg');
-                const writer = fs.createWriteStream(filePath);
-                response.data.pipe(writer);
-
-                writer.on('finish', () => {
-                    message.reply({
-                        body: `Here’s a random meme for you!\n\n*Title:* ${memeData.title}`,
-                        media: fs.createReadStream(filePath),
-                    });
-                });
-
-                writer.on('error', (err) => {
-                    console.error('Error saving the meme image:', err);
-                    message.reply('Sorry, I couldn\'t fetch the meme image right now. Please try again later.');
-                });
-            } catch (error) {
-                console.error('Error downloading the meme image:', error);
-                message.reply('Sorry, I couldn\'t download the meme image. Please try again later.');
-            }
-        } else {
-            message.reply('Sorry, I couldn\'t fetch a meme right now. Please try again later.');
-        }
+      writer.on("finish", () => {
+        fs.unlink(imagePath, (err) => {
+          if (err) {
+            console.error("Error removing the meme image:", err);
+          }
+          console.log("Meme image removed successfully.");
+        });
+      });
+    } catch (error) {
+      console.error("Error handling meme command:", error);
+      message.reply(
+        "Sorry, I couldn't fetch a meme right now. Please try again later."
+      );
     }
+  },
 };
