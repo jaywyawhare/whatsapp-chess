@@ -4,6 +4,7 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const { createTable, fillUsers } = require('./db/initDB');
 
+
 const help = require('./commands/help');
 const intro = require('./commands/intro');
 const meme = require('./commands/meme');
@@ -11,6 +12,9 @@ const menu = require('./commands/menu');
 const odds = require('./commands/odds');
 const ping = require('./commands/ping');
 const unixporn = require('./commands/unixporn');
+const refill = require('./commands/refill');
+const claim = require('./commands/claim');
+const leaderboard = require('./commands/leaderboard');
 
 const client = new Client({
     authStrategy: new LocalAuth(),
@@ -28,10 +32,10 @@ client.on('ready', () => {
 
 client.on('message', async (message) => {
     if (message.body.startsWith('=>')) {
+        const senderId = message.from;
         const args = message.body.slice(2).trim().split(/ +/);
         const command = args.shift().toLowerCase();
 
-        const senderId = message.from;
         const allowedUserId = process.env.ALLOWED_USER_ID;
 
         try {
@@ -57,6 +61,16 @@ client.on('message', async (message) => {
                 case 'unixporn':
                     await unixporn.execute(message, args);
                     break;
+                case 'refill':
+                    await refill.execute(message, args);
+                    break;
+                case 'claim':
+                    await claim.execute(message, args);
+                    break;
+                case 'leaderboard':
+                    await leaderboard.execute(message, args);
+                    break;
+
                 default:
                     await message.reply('Invalid command. Please use =>menu to see available commands.');
             }
