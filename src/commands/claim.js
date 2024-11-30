@@ -37,7 +37,7 @@ module.exports = {
                     const remainingTime = 69 - timeDifference;
                     return message.reply(`You can only claim once every 69 seconds. Please wait ${remainingTime} more second(s) to claim again.`);
                 }
-
+                
                 db.run('UPDATE users SET elixir = elixir + ?, lastClaimTime = ? WHERE userId = ?', [elixirAmount, currentTime, userId], (err) => {
                     if (err) {
                         console.error('Error updating user balance:', err.message);

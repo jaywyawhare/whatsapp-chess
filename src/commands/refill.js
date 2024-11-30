@@ -3,6 +3,8 @@ require('dotenv').config();
 
 const db = new sqlite3.Database('./user_data.db');
 
+const warning = require('./warning');
+
 module.exports = {
     name: 'refill',
     description: 'Refill the elixir balance of a tagged user, only if sent by the specific user.',
@@ -58,7 +60,7 @@ module.exports = {
                 }
             });
         } else {
-            message.reply(`Nice try, but you can't refill elixir. Only the magical user ${allowedUserId} can do that! 😂`);
+            warning.execute(message, []);
         }
     }
 };
