@@ -1,7 +1,6 @@
 const { Client, MessageMedia } = require('whatsapp-web.js');
 const sqlite3 = require('sqlite3').verbose();
 
-// Open the SQLite database
 const db = new sqlite3.Database('./user_data.db');
 
 module.exports = {
@@ -26,20 +25,25 @@ module.exports = {
                 }
 
                 let leaderboardMessage = '**Top 5 Users with the Highest Elixir**\n\n';
+                
+                const mentions = [];
 
-                for (let index = 0; index < rows.length; index++) {
-                    const row = rows[index];
-                    try {
-                        const contact = await message.client.getContactById(row.userId);
-                        
-                        leaderboardMessage += `${index + 1}. ${contact.pushname || contact.number} - Elixir: ${row.elixir}\n`;
-                    } catch (err) {
-                        console.error('Error fetching user details:', err.message);
-                        leaderboardMessage += `${index + 1}. User ID: ${row.userId} - Elixir: ${row.elixir} (Could not fetch contact)\n`;
+                rows.forEach((row, index) => {
+                    const userId = row.userId;
+                    const elixir = row.elixir;
+
+                    const userIdShort = userId.match(/\d{12}/);
+
+                    if (userIdShort) {
+                        const userIdWithTag = `${userIdShort[0]}@c.us`;  // Example: +123456789012@c.us
+
+                        leaderboardMessage += `*${index + 1}.* @${userIdShort[0]} - ${elixir} Elixir\n`;
+
+                        mentions.push(userIdWithTag);
                     }
-                }
+                });
 
-                message.reply(leaderboardMessage);
+                message.reply(leaderboardMessage, null, { mentions });
             });
         } catch (err) {
             console.error('Error processing leaderboard command:', err.message);
